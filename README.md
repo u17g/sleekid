@@ -36,7 +36,7 @@ import "github.com/RyosukeCla/sleekid"
 
 // Setup generator, before using sleekid.
 sleekid.Setup(sleekid.GeneratorInit{
-  // Set this token on your production environment.
+  // Change this token on your production environment.
   // and keep it secret.
   ChecksumToken:      729823908348,
 
