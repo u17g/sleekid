@@ -31,6 +31,7 @@ func Setup(init GeneratorInit) {
 //		RandomDigitsLength: 12,
 //	})
 //	id, err := sleekid.New("usr")
+//	id, err := sleekid.New("usr", sleekid.WithRandomBytes(16))
 func New(prefix string, options ...*GenerateOption) (SleekId, error) {
 	return generator.New(prefix, options...)
 }
