@@ -82,15 +82,10 @@ For a 50% collision probability:
 
 ### Length Recommendations
 
-- For small systems (<100K IDs/day): N=10
-- For medium systems (<10M IDs/day): N=12
-- For large systems (>10M IDs/day): N=14
-- For extreme systems (>1B IDs/day): N=16
-
-Where:
-- T: Timestamp character
-- R: Random character
-- C: Checksum character
+- For small scale systems (<100K IDs/day): N=10
+- For medium scale systems (<10M IDs/day): N=12
+- For large scale systems (>10M IDs/day): N=14
+- For extreme scale systems (>1B IDs/day): N=16
 
 ## Benchmark
 
