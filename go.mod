@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/rs/xid v1.6.0
 	gotest.tools v2.2.0+incompatible
 )
 
