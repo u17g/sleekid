@@ -6,10 +6,10 @@ The unique ID for the modern software. Stripe inspired.
 
 ```
 Prefix := user defined string
-Timestamp := base62(unix time - 2024-01-01), 4 ~ 6 digits, mostly 5 digits during 30 years.
-Random := base62(N length of random digits)
-Checksum := base62(2 length of checksum digits)
-Total length ~= prefix + N + 8
+Timestamp := base62(unix time - 2024-01-01), T: default is 5 digits.
+Random := base62(N length of random digits), N: default is 12
+Checksum := base62(C length of checksum digits), C: default is 2
+Total length = Prefix + T + N + C
 ```
 
 ## Points
@@ -21,8 +21,11 @@ Total length ~= prefix + N + 8
 - Monotonically increasing
 - B-tree optimized with built-in timestamps
 - Configurable length
+  - timestamp length: 4 ~ 6
+  - checksum length: 1 ~
+  - random digits length: 1 ~
 - Built-in checksum verification
-  - Detects errors with a probability of 99.74%
+  - Detects errors with a probability of 99.97%
 - Cryptographically random
 - URL friendly with base62 encoding
 
@@ -32,7 +35,17 @@ Total length ~= prefix + N + 8
 import "github.com/RyosukeCla/sleekid"
 
 // Setup generator, before using sleekid.
-sleekid.Setup(sleekid.GeneratorInit{Token: 12345, RandomDigitsLength: 12})
+sleekid.Setup(sleekid.GeneratorInit{
+  // Set this token on your production environment.
+  // and keep it secret.
+  ChecksumToken:      729823908348,
+
+  // Optional
+  RandomDigitsLength: 12,
+  Delimiter:          '_',
+  ChecksumLength:     2,
+  TimestampLength:    5,
+})
 
 // Generate id.
 id, err := sleekid.New("usr")
@@ -41,13 +54,23 @@ id, err := sleekid.New("usr")
 id, err := sleekid.New("usr", sleekid.WithRandomDigits(27))
 
 // Validate id.
-sleekid.Validate("usr", id)
+sleekid.Validate(id)
+sleekid.ValidateWithPrefix("usr", id)
+
+// Get Prefix
+prefix := sleekid.Prefix(id)
+
+// Get Timestamp
+timestamp := sleekid.Timestamp(id)
 
 // Custom Generator
-gen := sleekid.NewGenerator(sleekid.GeneratorInit{Token: 12345, RandomDigitsLength: 12})
+gen := sleekid.NewGenerator(sleekid.GeneratorInit{
+  // ...
+})
 id, err := gen.New("usr")
 gen.Validate("usr", id)
 ```
+
 
 ## Theory
 
@@ -76,8 +99,8 @@ For a 50% collision probability:
 
 ### Tamper Detection Probability
 
-- Tamper detection probability is 99.74% when checksum length is 2 digits
-  - where 1 - 1/62^2 ≈ 0.9974
+- Tamper detection probability is 99.97% when checksum length is 2 digits
+  - where 1 - 1/62^2 ≈ 0.9997
 - This helps to prevent brute-force attacks / DDoS / etc.
 
 ### Length Recommendations
@@ -90,11 +113,17 @@ For a 50% collision probability:
 ## Benchmark
 
 ```
+$ go test -bench . -benchmem
+
 goos: darwin
 goarch: arm64
 pkg: github.com/RyosukeCla/sleekid
 cpu: Apple M1 Max
-BenchmarkNew-10                  2806604               438.4 ns/op            88 B/op          6 allocs/op
-BenchmarkValidate-10            32127796               37.45 ns/op             2 B/op          1 allocs/op
-BenchmarkNewUUID-10              4314640               279.5 ns/op            16 B/op          1 allocs/op
+BenchmarkNew-10                          2757162               434.6 ns/op           120 B/op          6 allocs/op
+BenchmarkPrefix-10                      50348416                23.00 ns/op           16 B/op          2 allocs/op
+BenchmarkTimestamp-10                   24204141                48.88 ns/op            0 B/op          0 allocs/op
+BenchmarkValidate-10                    32242606                36.41 ns/op            2 B/op          1 allocs/op
+BenchmarkValidateWithPrefix-10          29806628                40.36 ns/op            2 B/op          1 allocs/op
+BenchmarkNewUUID-10                      4148452               281.1 ns/op            16 B/op          1 allocs/op
+BenchmarkNewXid-10                      24769122                47.97 ns/op            0 B/op          0 allocs/op
 ```
