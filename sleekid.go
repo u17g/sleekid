@@ -16,7 +16,7 @@ var generator Generator
 // It must be called before using New or Validate.
 //
 //	sleekid.Setup(sleekid.GeneratorInit{
-//		Token: 12345,
+//		ChecksumToken: 12345,
 //		RandomDigitsLength: 12,
 //	})
 func Setup(init GeneratorInit) {
@@ -25,12 +25,6 @@ func Setup(init GeneratorInit) {
 
 // New generates a new id with the given prefix.
 //
-// Before using New, Setup must be called.
-//
-//	sleekid.Setup(sleekid.GeneratorInit{
-//		Token: 12345,
-//		RandomDigitsLength: 12,
-//	})
 //	id, err := sleekid.New("usr")
 //	id, err := sleekid.New("usr", sleekid.WithRandomBytes(16))
 func New(prefix string, options ...*GenerateOption) (SleekId, error) {
@@ -40,20 +34,44 @@ func New(prefix string, options ...*GenerateOption) (SleekId, error) {
 	return generator.New(prefix, options...)
 }
 
-// Validate checks if the given id is valid.
+// Prefix returns the prefix of the given id.
 //
-// Before using Validate, Setup must be called.
+//	sleekid.Prefix(id)
+func Prefix(id SleekId) string {
+	if generator == nil {
+		return ""
+	}
+	return generator.Prefix(id)
+}
+
+// Timestamp returns the unix time of the timestamp part.
 //
-//	sleekid.Setup(sleekid.GeneratorInit{
-//		Token: 12345,
-//		RandomDigitsLength: 12,
-//	})
-//	sleekid.Validate("usr", id)
-func Validate(prefix string, id SleekId) bool {
+//	sleekid.Timestamp(id)
+func Timestamp(id SleekId) time.Time {
+	if generator == nil {
+		return time.Time{}
+	}
+	return generator.Timestamp(id)
+}
+
+// Validate checks if the given the timestamp and random part is valid.
+//
+//	sleekid.Validate(id)
+func Validate(id SleekId) bool {
 	if generator == nil {
 		return false
 	}
-	return generator.Validate(prefix, id)
+	return generator.Validate(id)
+}
+
+// ValidateWithPrefix checks if the given id is valid with the specific prefix..
+//
+//	sleekid.ValidateWithPrefix("usr", id)
+func ValidateWithPrefix(prefix string, id SleekId) bool {
+	if generator == nil {
+		return false
+	}
+	return generator.ValidateWithPrefix(prefix, id)
 }
 
 type SleekId []byte
@@ -63,90 +81,216 @@ func (id SleekId) String() string {
 }
 
 type GenerateOption struct {
-	RandomDigitsLength int
-}
-type GeneratorInit struct {
-	// token is used to verify the id.
-	Token uint64
 	// RandomDigitsLength is the length of the random part of the id.
 	RandomDigitsLength int
 }
 
+type GeneratorInit struct {
+	// delimiter is the character used to separate the prefix from the rest of the id.
+	//
+	// Default is "_".
+	Delimiter rune
+
+	// checksumToken is used to verify the id. Don't expose it to the public.
+	//
+	// Default is 4567890. Change it on your production environment.
+	ChecksumToken uint64
+
+	// ChecksumLength is the length of the checksum part of the id.
+	// This will increase the precisition of the false detection rate.
+	//
+	// the probability of false detection is 1 - 1/62^ChecksumLength.
+	// 2 is enough for most cases. It's 99.97%.
+	//
+	// Default is 2.
+	ChecksumLength int
+
+	// RandomDigitsLength is the length of the random part of the id.
+	// Also you can customize this length when you call New() with WithRandomBytes().
+	//
+	// Default is 12.
+	RandomDigitsLength int
+
+	// TimestampLength is the length of the timestamp part of the id.
+	//
+	// Default is 5.
+	// must be 4 <= TimestampLength <= 6.
+	TimestampLength int
+}
+
+// WithRandomBytes is a helper function to set the RandomDigitsLength option.
 func WithRandomBytes(length int) *GenerateOption {
 	return &GenerateOption{RandomDigitsLength: length}
 }
 
 type Generator interface {
+	// New generates a new id with the given prefix.
+	//
+	//	gen := NewGenerator(GeneratorInit{...})
+	//	id, err := gen.New("usr")
+	//	id, err := gen.New("usr", WithRandomBytes(16))
 	New(prefix string, options ...*GenerateOption) (SleekId, error)
-	Validate(prefix string, id SleekId) bool
+
+	// Prefix returns the prefix of the given id.
+	//
+	//	gen := NewGenerator(GeneratorInit{...})
+	//	prefix := gen.Prefix(id)
+	Prefix(id SleekId) string
+
+	// Timestamp returns the unix time of the timestamp part.
+	//
+	//	gen := NewGenerator(GeneratorInit{...})
+	//	timestamp := gen.Timestamp(id)
+	Timestamp(id SleekId) time.Time
+
+	// Validate checks if the given the timestamp and random part is valid.
+	//
+	//	gen := NewGenerator(GeneratorInit{...})
+	//	valid := gen.Validate(id)
+	Validate(id SleekId) bool
+
+	// ValidateWithPrefix checks if the given id is valid with the specific prefix.
+	//
+	//	gen := NewGenerator(GeneratorInit{...})
+	//	valid := gen.ValidateWithPrefix("usr", id)
+	ValidateWithPrefix(prefix string, id SleekId) bool
 }
 
 type sleekIdGen struct {
-	Token              uint64
-	RandomDigitsLength int
+	delimiter          byte
+	checksumToken      uint64
+	checksumLength     int
+	randomDigitsLength int
+	timestampLength    int
 }
 
 // 0-9 < a-z < A-Z
 const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const alphabetLength = len(alphabet)
-const alphabetLength64 = int64(alphabetLength)
+
+var alphabetBytes = []byte(alphabet)
+
 const baseUnixEpoch = 1704067200 // 2024-01-01 00:00:00 UTC
 
 func NewGenerator(init GeneratorInit) Generator {
-	return &sleekIdGen{Token: init.Token, RandomDigitsLength: init.RandomDigitsLength}
+	delimiter := byte('_')
+	if init.Delimiter != 0 {
+		delimiter = byte(init.Delimiter)
+	}
+	checksumLength := 2
+	if init.ChecksumLength != 0 {
+		checksumLength = init.ChecksumLength
+	}
+	randomDigitsLength := 12
+	if init.RandomDigitsLength != 0 {
+		randomDigitsLength = init.RandomDigitsLength
+	}
+	checksumToken := uint64(4567890)
+	if init.ChecksumToken != 0 {
+		checksumToken = init.ChecksumToken
+	}
+	timestampLength := 5
+	if 4 <= init.TimestampLength && init.TimestampLength <= 6 {
+		timestampLength = init.TimestampLength
+	} else if init.TimestampLength != 0 {
+		panic("TimestampLength must be 4 <= TimestampLength <= 6")
+	}
+	return &sleekIdGen{
+		delimiter:          delimiter,
+		checksumToken:      checksumToken,
+		checksumLength:     checksumLength,
+		randomDigitsLength: randomDigitsLength,
+		timestampLength:    timestampLength,
+	}
 }
 
-// Returns id with len(prefix) + 4~6 + RandomDigitsLength + 2
 func (o *sleekIdGen) New(prefix string, options ...*GenerateOption) (SleekId, error) {
-	randomDigitsLength := o.RandomDigitsLength
+	randomDigitsLength := o.randomDigitsLength
 	if len(options) > 0 {
 		randomDigitsLength = options[0].RandomDigitsLength
 	}
-	timestamp := timestampToSortableString(time.Now())
+	timestamp := timestampToSortableString(time.Now(), o.timestampLength)
 	randomBytes := make([]byte, randomDigitsLength)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random bytes: %w", err)
 	}
 	for i, b := range randomBytes {
-		randomBytes[i] = alphabet[b%byte(alphabetLength)]
+		randomBytes[i] = alphabet[b%62]
 	}
 	idPart := append(timestamp, randomBytes...)
-	checksum := generateChecksum(idPart, o.Token)
+	checksum := generateChecksum(idPart, o.checksumLength, o.checksumToken)
 
 	// prefix + "_" + random bits + checksum bits
-	id := make([]byte, 0, len(prefix)+1+len(idPart)+len(checksum))
+	id := make([]byte, 0, len(prefix)+1+randomDigitsLength+o.checksumLength)
 	id = append(id, prefix...)
-	id = append(id, '_')
+	id = append(id, o.delimiter)
 	id = append(id, idPart...)
 	id = append(id, checksum...)
 	return SleekId(id), nil
 }
 
-func (o *sleekIdGen) Validate(prefix string, id SleekId) bool {
-	if !bytes.HasPrefix(id, append([]byte(prefix), '_')) {
-		return false
+func (o *sleekIdGen) Prefix(id SleekId) string {
+	delimiterPos := -1
+	for i, b := range id {
+		if b == o.delimiter {
+			delimiterPos = i
+			break
+		}
 	}
-	id = id[len(prefix)+1:]
-	if len(id) < 2 {
-		return false
+	if delimiterPos == -1 {
+		return ""
 	}
-	idPart, checksum := id[:len(id)-2], id[len(id)-2:]
-	return bytes.Equal(checksum, generateChecksum(idPart, o.Token))
+	return string(id[:delimiterPos])
 }
 
-func timestampToSortableString(t time.Time) []byte {
+func (o *sleekIdGen) Timestamp(id SleekId) time.Time {
+	prefix := o.Prefix(id)
+	timestamp := id[len(prefix)+1 : len(prefix)+1+o.timestampLength]
+	return timestampToUnixTime(timestamp)
+}
+
+func (o *sleekIdGen) Validate(id SleekId) bool {
+	delimiterPos := -1
+	for i, b := range id {
+		if b == o.delimiter {
+			delimiterPos = i
+			break
+		}
+	}
+	if delimiterPos == -1 {
+		return false
+	}
+	id = id[delimiterPos+1:]
+	if len(id) < o.checksumLength {
+		return false
+	}
+	idPart, checksum := id[:len(id)-o.checksumLength], id[len(id)-o.checksumLength:]
+	return bytes.Equal(checksum, generateChecksum(idPart, o.checksumLength, o.checksumToken))
+}
+
+func (o *sleekIdGen) ValidateWithPrefix(prefix string, id SleekId) bool {
+	if !bytes.HasPrefix(id, append([]byte(prefix), o.delimiter)) {
+		return false
+	}
+	return o.Validate(id)
+}
+
+func timestampToSortableString(t time.Time, length int) []byte {
 	timeValue := t.Unix() - baseUnixEpoch
 
-	result := make([]byte, 0, 4)
+	result := make([]byte, 0, length)
 
 	for timeValue > 0 {
-		result = append(result, alphabet[int(timeValue%alphabetLength64)])
-		timeValue = timeValue / alphabetLength64
+		result = append(result, alphabet[int(timeValue%62)])
+		timeValue = timeValue / 62
 	}
 
-	for len(result) < 4 {
+	for len(result) < length {
 		result = append(result, alphabet[0])
+	}
+
+	if len(result) > length {
+		result = result[:length]
 	}
 
 	// make sortable
@@ -157,8 +301,38 @@ func timestampToSortableString(t time.Time) []byte {
 	return result
 }
 
+func timestampToUnixTime(s []byte) time.Time {
+	// convert 62 base to 10 base
+	var timeValue int64 = 0
+	multiplier := int64(1)
+
+	for i := len(s) - 1; i >= 0; i-- {
+		c := s[i]
+		// find the position of the alphabet
+		pos := -1
+		for i, char := range alphabetBytes {
+			if c == char {
+				pos = i
+				break
+			}
+		}
+		if pos == -1 {
+			return time.Time{}
+		}
+
+		timeValue += int64(pos) * multiplier
+		multiplier *= 62
+	}
+
+	// add baseUnixEpoch to get the original unix timestamp
+	timeValue += baseUnixEpoch
+
+	// convert unix timestamp to time.Time
+	return time.Unix(timeValue, 0)
+}
+
 // generateChecksum creates a 2-character checksum for the given string
-func generateChecksum(str []byte, token uint64) []byte {
+func generateChecksum(str []byte, length int, token uint64) []byte {
 	var hash1 uint32 = uint32(token >> 32) // top 32 bits
 	var hash2 uint32 = uint32(token)
 
@@ -172,9 +346,11 @@ func generateChecksum(str []byte, token uint64) []byte {
 
 	combined := hash1 ^ hash2
 
-	// Convert to 2-character base62
-	return []byte{
-		alphabet[combined%62],
-		alphabet[(combined/62)%62],
+	// Convert to length-character base62
+	result := make([]byte, length)
+	for i := 0; i < length; i++ {
+		result[i] = alphabet[combined%62]
+		combined /= 62
 	}
+	return result
 }
