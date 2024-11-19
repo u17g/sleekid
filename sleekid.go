@@ -2,22 +2,18 @@ package sleekid
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"time"
 
 	"crypto/rand"
 )
 
-var generator Generator
+var generator Generator = NewGenerator(GeneratorInit{})
 
 // Setup initializes the generator.
 //
-// It must be called before using New or Validate.
-//
 //	sleekid.Setup(sleekid.GeneratorInit{
 //		ChecksumToken: 12345,
-//		RandomDigitsLength: 12,
 //	})
 func Setup(init GeneratorInit) {
 	generator = NewGenerator(init)
@@ -28,9 +24,6 @@ func Setup(init GeneratorInit) {
 //	id, err := sleekid.New("usr")
 //	id, err := sleekid.New("usr", sleekid.WithRandomBytes(16))
 func New(prefix string, options ...*GenerateOption) (SleekId, error) {
-	if generator == nil {
-		return nil, errors.New("must be initialized by sleekid.Setup")
-	}
 	return generator.New(prefix, options...)
 }
 
@@ -38,9 +31,6 @@ func New(prefix string, options ...*GenerateOption) (SleekId, error) {
 //
 //	sleekid.Prefix(id)
 func Prefix(id SleekId) string {
-	if generator == nil {
-		return ""
-	}
 	return generator.Prefix(id)
 }
 
@@ -48,9 +38,6 @@ func Prefix(id SleekId) string {
 //
 //	sleekid.Timestamp(id)
 func Timestamp(id SleekId) time.Time {
-	if generator == nil {
-		return time.Time{}
-	}
 	return generator.Timestamp(id)
 }
 
@@ -58,9 +45,6 @@ func Timestamp(id SleekId) time.Time {
 //
 //	sleekid.Validate(id)
 func Validate(id SleekId) bool {
-	if generator == nil {
-		return false
-	}
 	return generator.Validate(id)
 }
 
@@ -68,9 +52,6 @@ func Validate(id SleekId) bool {
 //
 //	sleekid.ValidateWithPrefix("usr", id)
 func ValidateWithPrefix(prefix string, id SleekId) bool {
-	if generator == nil {
-		return false
-	}
 	return generator.ValidateWithPrefix(prefix, id)
 }
 
