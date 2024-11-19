@@ -4,13 +4,15 @@ import (
 	"regexp"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/xid"
 	"gotest.tools/assert"
 )
 
 func BenchmarkNew(b *testing.B) {
-	gen := NewGenerator(GeneratorInit{Token: 30, RandomDigitsLength: 15})
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
 	prefix := "usr"
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -18,13 +20,40 @@ func BenchmarkNew(b *testing.B) {
 	}
 }
 
+func BenchmarkPrefix(b *testing.B) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15, ChecksumLength: 4, Delimiter: '_'})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gen.Prefix([]byte("usr_ajijoi"))
+	}
+}
+
+func BenchmarkTimestamp(b *testing.B) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 2, TimestampLength: 5})
+	id, _ := gen.New("usr")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gen.Timestamp(id)
+	}
+}
+
 func BenchmarkValidate(b *testing.B) {
-	gen := NewGenerator(GeneratorInit{Token: 30, RandomDigitsLength: 15})
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
 	prefix := "usr"
 	id, _ := gen.New(prefix)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gen.Validate(prefix, id)
+		gen.Validate(id)
+	}
+}
+
+func BenchmarkValidateWithPrefix(b *testing.B) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
+	prefix := "usr"
+	id, _ := gen.New(prefix)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gen.ValidateWithPrefix(prefix, id)
 	}
 }
 
@@ -35,46 +64,88 @@ func BenchmarkNewUUID(b *testing.B) {
 	}
 }
 
+func BenchmarkNewXid(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		xid.New()
+	}
+}
+
 func TestNew(t *testing.T) {
-	gen := NewGenerator(GeneratorInit{Token: 30, RandomDigitsLength: 10})
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 10})
 	id, _ := gen.New("usr")
 
 	assert.Equal(t, 3+1+5+10+2, len(id))
 	assert.Assert(t, regexp.MustCompile(`^[a-z]+_[A-Za-z0-9]+$`).MatchString(string(id)))
 }
 
-func TestValidate_shouldFailWhenPrefixIsDifferent(t *testing.T) {
-	gen := NewGenerator(GeneratorInit{Token: 30, RandomDigitsLength: 15})
+func TestPrefix(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 10})
 	id, _ := gen.New("usr")
-	assert.Equal(t, false, gen.Validate("usr2", id))
+	assert.Equal(t, "usr", gen.Prefix(id))
 }
 
-func TestValidate_shouldFailWhenIdIsTooShort(t *testing.T) {
-	gen := NewGenerator(GeneratorInit{Token: 30, RandomDigitsLength: 15})
-	assert.Equal(t, false, gen.Validate("usr", []byte("a")))
-	assert.Equal(t, false, gen.Validate("usr", []byte("usr_")))
-	assert.Equal(t, false, gen.Validate("usr", []byte("usr_aos")))
+func TestPrefix_shouldReturnEmpty(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 10})
+	assert.Equal(t, "", gen.Prefix([]byte("ajijoi")))
 }
 
-func TestValidate_shouldFailWhenTokenIsDifferent(t *testing.T) {
-	gen := NewGenerator(GeneratorInit{Token: 30, RandomDigitsLength: 15})
+func TestTimestamp(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 2, TimestampLength: 5})
 	id, _ := gen.New("usr")
-	gen2 := NewGenerator(GeneratorInit{Token: 100, RandomDigitsLength: 15})
-	assert.Equal(t, false, gen2.Validate("usr", id))
+	now := time.Unix(time.Now().Unix(), 0)
+	timestmap := gen.Timestamp(id)
+	assert.Equal(t, now, timestmap)
 }
 
-func TestValidate_shouldWorkWhenAllIsGood(t *testing.T) {
-	gen := NewGenerator(GeneratorInit{Token: 30, RandomDigitsLength: 15})
+func TestTimestampWithCustomTimestampLength(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 2, TimestampLength: 6})
 	id, _ := gen.New("usr")
-	gen2 := NewGenerator(GeneratorInit{Token: 30, RandomDigitsLength: 15})
-	assert.Equal(t, true, gen2.Validate("usr", id))
+	now := time.Unix(time.Now().Unix(), 0)
+	timestmap := gen.Timestamp(id)
+	assert.Equal(t, now, timestmap)
+}
+
+func TestValidate(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
+	id, _ := gen.New("usr")
+	assert.Equal(t, true, gen.Validate(id))
+	assert.Equal(t, false, gen.Validate([]byte("aoj_aoisjdfoi")))
+	assert.Equal(t, false, gen.Validate([]byte("asf")))
+}
+
+func TestValidateWithPrefix_shouldFailWhenPrefixIsDifferent(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
+	id, _ := gen.New("usr")
+	assert.Equal(t, false, gen.ValidateWithPrefix("usr2", id))
+}
+
+func TestValidateWithPrefix_shouldFailWhenIdIsTooShort(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
+	assert.Equal(t, false, gen.ValidateWithPrefix("usr", []byte("a")))
+	assert.Equal(t, false, gen.ValidateWithPrefix("usr", []byte("usr_")))
+	assert.Equal(t, false, gen.ValidateWithPrefix("usr", []byte("usr_aos")))
+}
+
+func TestValidateWithPrefix_shouldFailWhenTokenIsDifferent(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
+	id, _ := gen.New("usr")
+	gen2 := NewGenerator(GeneratorInit{ChecksumToken: 100, RandomDigitsLength: 15})
+	assert.Equal(t, false, gen2.ValidateWithPrefix("usr", id))
+}
+
+func TestValidateWithPrefix_shouldWorkWhenAllIsGood(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
+	id, _ := gen.New("usr")
+	gen2 := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
+	assert.Equal(t, true, gen2.ValidateWithPrefix("usr", id))
 }
 
 func TestNewConcurrentGeneration(t *testing.T) {
 	const numGoroutines = 150
 	const numIDs = 2000
 
-	gen := NewGenerator(GeneratorInit{Token: 30, RandomDigitsLength: 15})
+	gen := NewGenerator(GeneratorInit{ChecksumToken: 30, RandomDigitsLength: 15})
 
 	seen := sync.Map{}
 	var wg sync.WaitGroup
@@ -91,4 +162,32 @@ func TestNewConcurrentGeneration(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func TestCustomChecksumLength(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{
+		ChecksumToken:      100,
+		RandomDigitsLength: 15,
+		ChecksumLength:     4,
+		TimestampLength:    5,
+		Delimiter:          '_',
+	})
+	id, _ := gen.New("usr")
+	assert.Equal(t, true, gen.Validate(id))
+	assert.Equal(t, 3+1+5+15+4, len(id))
+	assert.Assert(t, regexp.MustCompile(`^[a-z]+_[A-Za-z0-9]+$`).MatchString(string(id)))
+}
+
+func TestCustomTimestampLength(t *testing.T) {
+	gen := NewGenerator(GeneratorInit{
+		ChecksumToken:      100,
+		RandomDigitsLength: 15,
+		ChecksumLength:     2,
+		TimestampLength:    6,
+		Delimiter:          '_',
+	})
+	id, _ := gen.New("usr")
+	assert.Equal(t, true, gen.Validate(id))
+	assert.Equal(t, 3+1+6+15+2, len(id))
+	assert.Assert(t, regexp.MustCompile(`^[a-z]+_[A-Za-z0-9]+$`).MatchString(string(id)))
 }
