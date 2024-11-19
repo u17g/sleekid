@@ -1,6 +1,6 @@
 # sleekid
 
-The unique ID for the modern software. Stripe inspired.
+The globally unique ID for the modern software. Fully configurable. Stripe inspired.
 
 ![id format](./id_format.png)
 
@@ -18,7 +18,7 @@ Total length = Prefix + T + N + C
 - More compact than UUID while maintaining collision resistance
   - when random digits length is 16, total length is near 26 bytes
   - shorter than UUID, the same collision resistance with UUID.
-- Monotonically increasing
+- Built-in timestamp
 - B-tree optimized with built-in timestamps
 - Configurable length
   - timestamp length: 4 ~ 6
