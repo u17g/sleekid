@@ -51,6 +51,10 @@ func Validate(prefix string, id SleekId) bool {
 
 type SleekId []byte
 
+func (id SleekId) String() string {
+	return string(id)
+}
+
 type GenerateOption struct {
 	RandomDigitsLength int
 }
