@@ -67,7 +67,7 @@ type GenerateOption struct {
 }
 type GeneratorInit struct {
 	// token is used to verify the id.
-	Token uint32
+	Token uint64
 	// RandomDigitsLength is the length of the random part of the id.
 	RandomDigitsLength int
 }
@@ -82,7 +82,7 @@ type Generator interface {
 }
 
 type sleekIdGen struct {
-	Token              uint32
+	Token              uint64
 	RandomDigitsLength int
 }
 
@@ -158,17 +158,23 @@ func timestampToSortableString(t time.Time) []byte {
 }
 
 // generateChecksum creates a 2-character checksum for the given string
-func generateChecksum(str []byte, token uint32) []byte {
-	var hash uint32 = token
+func generateChecksum(str []byte, token uint64) []byte {
+	var hash1 uint32 = uint32(token >> 32) // top 32 bits
+	var hash2 uint32 = uint32(token)
+
 	for i := 0; i < len(str); i++ {
-		hash = ((hash << 5) - hash) + uint32(str[i])
-		// 16-bit rotation
-		hash ^= (hash >> 16)
+		hash1 = ((hash1 << 5) - hash1) + uint32(str[i])
+		hash1 ^= (hash1 >> 16)
+
+		hash2 = ((hash2 << 5) - hash2) + uint32(str[i])
+		hash2 ^= (hash2 >> 16)
 	}
+
+	combined := hash1 ^ hash2
 
 	// Convert to 2-character base62
 	return []byte{
-		alphabet[hash%62],
-		alphabet[(hash/62)%62],
+		alphabet[combined%62],
+		alphabet[(combined/62)%62],
 	}
 }
