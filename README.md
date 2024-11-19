@@ -97,9 +97,9 @@ Where:
 ```
 goos: darwin
 goarch: arm64
-pkg: github.com/RyosukeCla/sleekip
+pkg: github.com/RyosukeCla/sleekid
 cpu: Apple M1 Max
-BenchmarkNew-10                  2692879               434.0 ns/op            88 B/op          5 allocs/op
-BenchmarkValidate-10            54288508               22.65 ns/op             0 B/op          0 allocs/op
-BenchmarkNewUUID-10              4235412               283.9 ns/op            16 B/op          1 allocs/op
+BenchmarkNew-10                  2806604               438.4 ns/op            88 B/op          6 allocs/op
+BenchmarkValidate-10            32127796               37.45 ns/op             2 B/op          1 allocs/op
+BenchmarkNewUUID-10              4314640               279.5 ns/op            16 B/op          1 allocs/op
 ```
