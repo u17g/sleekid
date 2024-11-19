@@ -1,4 +1,4 @@
-module github.com/RyosukeCla/sleekip
+module github.com/RyosukeCla/sleekid
 
 go 1.21
 
