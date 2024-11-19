@@ -2,6 +2,7 @@ package sleekid
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"time"
 
@@ -33,6 +34,9 @@ func Setup(init GeneratorInit) {
 //	id, err := sleekid.New("usr")
 //	id, err := sleekid.New("usr", sleekid.WithRandomBytes(16))
 func New(prefix string, options ...*GenerateOption) (SleekId, error) {
+	if generator == nil {
+		return nil, errors.New("must be initialized by sleekid.Setup")
+	}
 	return generator.New(prefix, options...)
 }
 
@@ -46,6 +50,9 @@ func New(prefix string, options ...*GenerateOption) (SleekId, error) {
 //	})
 //	sleekid.Validate("usr", id)
 func Validate(prefix string, id SleekId) bool {
+	if generator == nil {
+		return false
+	}
 	return generator.Validate(prefix, id)
 }
 
