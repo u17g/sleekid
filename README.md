@@ -76,9 +76,9 @@ For a 50% collision probability:
 
 ### Tamper Detection Probability
 
-- tamper detection probability is 99.74% when checksum length is 2 digits
-- where 1 - 1/62^2 ≈ 0.9974
-- This helps to prevent brute-force attacks
+- Tamper detection probability is 99.74% when checksum length is 2 digits
+  - where 1 - 1/62^2 ≈ 0.9974
+- This helps to prevent brute-force attacks / DDoS / etc.
 
 ### Length Recommendations
 
