@@ -70,7 +70,7 @@ gen := sleekid.NewGenerator(sleekid.GeneratorInit{
   // ...
 })
 id, err := gen.New("usr")
-gen.Validate("usr", id)
+gen.Validate(id)
 ```
 
 
