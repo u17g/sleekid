@@ -18,16 +18,18 @@ Total length = Prefix + T + N + C
 - More compact than UUID while maintaining collision resistance
   - when random digits length is 16, total length is near 26 bytes
   - shorter than UUID, the same collision resistance with UUID.
-- Built-in timestamp
 - B-tree optimized with built-in timestamps
-- Configurable length
-  - timestamp length: 4 ~ 6
-  - checksum length: 1 ~
-  - random digits length: 1 ~
 - Built-in checksum verification
   - Detects errors with a probability of 99.97%
 - Cryptographically random
 - URL friendly with base62 encoding
+- Fully configurable
+  - prefix: any string
+  - delimiter: any single character
+  - timestamp length: 4 ~ 6
+  - checksum length: 1 ~ 3
+    - checksum token: any 64-bit integer
+  - random digits length: 1 ~ 16
 
 ## Usage
 
