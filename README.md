@@ -121,11 +121,11 @@ goos: darwin
 goarch: arm64
 pkg: github.com/RyosukeCla/sleekid
 cpu: Apple M1 Max
-BenchmarkNew-10                          2757162               434.6 ns/op           120 B/op          6 allocs/op
-BenchmarkPrefix-10                      50348416                23.00 ns/op           16 B/op          2 allocs/op
-BenchmarkTimestamp-10                   24204141                48.88 ns/op            0 B/op          0 allocs/op
-BenchmarkValidate-10                    32242606                36.41 ns/op            2 B/op          1 allocs/op
-BenchmarkValidateWithPrefix-10          29806628                40.36 ns/op            2 B/op          1 allocs/op
-BenchmarkNewUUID-10                      4148452               281.1 ns/op            16 B/op          1 allocs/op
-BenchmarkNewXid-10                      24769122                47.97 ns/op            0 B/op          0 allocs/op
+BenchmarkNew-10                          2786331               424.1 ns/op            96 B/op          5 allocs/op
+BenchmarkPrefix-10                      50602398                22.73 ns/op           16 B/op          2 allocs/op
+BenchmarkTimestamp-10                   28589920                41.83 ns/op            0 B/op          0 allocs/op
+BenchmarkValidate-10                    29047572                40.60 ns/op            2 B/op          1 allocs/op
+BenchmarkValidateWithPrefix-10          26366164                44.81 ns/op            2 B/op          1 allocs/op
+BenchmarkNewUUID-10                      4284284               282.4 ns/op            16 B/op          1 allocs/op
+BenchmarkNewXid-10                      24377856                47.75 ns/op            0 B/op          0 allocs/op
 ```

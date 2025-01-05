@@ -198,14 +198,14 @@ func (o *sleekIdGen) New(prefix string, options ...*GenerateOption) (SleekId, er
 	for i, b := range randomBytes {
 		randomBytes[i] = alphabet[b%62]
 	}
-	idPart := append(timestamp, randomBytes...)
-	checksum := generateChecksum(idPart, o.checksumLength, o.checksumToken)
 
 	// prefix + "_" + random bits + checksum bits
 	id := make([]byte, 0, len(prefix)+1+randomDigitsLength+o.checksumLength)
 	id = append(id, prefix...)
 	id = append(id, o.delimiter)
-	id = append(id, idPart...)
+	id = append(id, timestamp...)
+	id = append(id, randomBytes...)
+	checksum := generateChecksum(id, o.checksumLength, o.checksumToken)
 	id = append(id, checksum...)
 	return SleekId(id), nil
 }
@@ -231,17 +231,6 @@ func (o *sleekIdGen) Timestamp(id SleekId) time.Time {
 }
 
 func (o *sleekIdGen) Validate(id SleekId) bool {
-	delimiterPos := -1
-	for i, b := range id {
-		if b == o.delimiter {
-			delimiterPos = i
-			break
-		}
-	}
-	if delimiterPos == -1 {
-		return false
-	}
-	id = id[delimiterPos+1:]
 	if len(id) < o.checksumLength {
 		return false
 	}
