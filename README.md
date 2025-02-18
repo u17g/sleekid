@@ -47,6 +47,7 @@ sleekid.Setup(sleekid.GeneratorInit{
   Delimiter:          '_',
   ChecksumLength:     2,
   TimestampLength:    5,
+  TimestampOrder:     sleekid.TimestampOrderAlphabetical,
 })
 
 // Generate id.

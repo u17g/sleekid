@@ -66,6 +66,13 @@ type GenerateOption struct {
 	RandomDigitsLength int
 }
 
+type TimestampOrder int
+
+const (
+	TimestampOrderAlphabetical TimestampOrder = 0
+	TimestampOrderASCII        TimestampOrder = 1
+)
+
 type GeneratorInit struct {
 	// delimiter is the character used to separate the prefix from the rest of the id.
 	//
@@ -97,6 +104,11 @@ type GeneratorInit struct {
 	// Default is 5.
 	// must be 4 <= TimestampLength <= 6.
 	TimestampLength int
+
+	// TimestampOrder is the order of the timestamp part of the id that sleekid generates.
+	//
+	// Default is Alphabetical order.
+	TimestampOrder TimestampOrder
 }
 
 // WithRandomBytes is a helper function to set the RandomDigitsLength option.
@@ -143,12 +155,9 @@ type sleekIdGen struct {
 	checksumLength     int
 	randomDigitsLength int
 	timestampLength    int
+	alphabet           string
+	alphabetBytes      []byte
 }
-
-// 0-9 < a-z < A-Z
-const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-var alphabetBytes = []byte(alphabet)
 
 const baseUnixEpoch = 1704067200 // 2024-01-01 00:00:00 UTC
 
@@ -175,12 +184,20 @@ func NewGenerator(init GeneratorInit) Generator {
 	} else if init.TimestampLength != 0 {
 		panic("TimestampLength must be 4 <= TimestampLength <= 6")
 	}
+	// Alphabetical order: 0-9 < a-z < A-Z
+	alphabet := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	if init.TimestampOrder == TimestampOrderASCII {
+		// ASCII order: 0-9 < A-Z < a-z
+		alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	}
 	return &sleekIdGen{
 		delimiter:          delimiter,
 		checksumToken:      checksumToken,
 		checksumLength:     checksumLength,
 		randomDigitsLength: randomDigitsLength,
 		timestampLength:    timestampLength,
+		alphabet:           alphabet,
+		alphabetBytes:      []byte(alphabet),
 	}
 }
 
@@ -189,14 +206,14 @@ func (o *sleekIdGen) New(prefix string, options ...*GenerateOption) (SleekId, er
 	if len(options) > 0 {
 		randomDigitsLength = options[0].RandomDigitsLength
 	}
-	timestamp := timestampToSortableString(time.Now(), o.timestampLength)
+	timestamp := timestampToSortableString(time.Now(), o.timestampLength, o.alphabet)
 	randomBytes := make([]byte, randomDigitsLength)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random bytes: %w", err)
 	}
 	for i, b := range randomBytes {
-		randomBytes[i] = alphabet[b%62]
+		randomBytes[i] = o.alphabet[b%62]
 	}
 
 	// prefix + "_" + random bits + checksum bits
@@ -205,7 +222,7 @@ func (o *sleekIdGen) New(prefix string, options ...*GenerateOption) (SleekId, er
 	id = append(id, o.delimiter)
 	id = append(id, timestamp...)
 	id = append(id, randomBytes...)
-	checksum := generateChecksum(id, o.checksumLength, o.checksumToken)
+	checksum := generateChecksum(id, o.checksumLength, o.checksumToken, o.alphabet)
 	id = append(id, checksum...)
 	return SleekId(id), nil
 }
@@ -227,7 +244,7 @@ func (o *sleekIdGen) Prefix(id SleekId) string {
 func (o *sleekIdGen) Timestamp(id SleekId) time.Time {
 	prefix := o.Prefix(id)
 	timestamp := id[len(prefix)+1 : len(prefix)+1+o.timestampLength]
-	return timestampToUnixTime(timestamp)
+	return timestampToUnixTime(timestamp, o.alphabetBytes)
 }
 
 func (o *sleekIdGen) Validate(id SleekId) bool {
@@ -235,7 +252,7 @@ func (o *sleekIdGen) Validate(id SleekId) bool {
 		return false
 	}
 	idPart, checksum := id[:len(id)-o.checksumLength], id[len(id)-o.checksumLength:]
-	return bytes.Equal(checksum, generateChecksum(idPart, o.checksumLength, o.checksumToken))
+	return bytes.Equal(checksum, generateChecksum(idPart, o.checksumLength, o.checksumToken, o.alphabet))
 }
 
 func (o *sleekIdGen) ValidateWithPrefix(prefix string, id SleekId) bool {
@@ -245,7 +262,7 @@ func (o *sleekIdGen) ValidateWithPrefix(prefix string, id SleekId) bool {
 	return o.Validate(id)
 }
 
-func timestampToSortableString(t time.Time, length int) []byte {
+func timestampToSortableString(t time.Time, length int, alphabet string) []byte {
 	timeValue := t.Unix() - baseUnixEpoch
 
 	result := make([]byte, 0, length)
@@ -271,7 +288,7 @@ func timestampToSortableString(t time.Time, length int) []byte {
 	return result
 }
 
-func timestampToUnixTime(s []byte) time.Time {
+func timestampToUnixTime(s []byte, alphabetBytes []byte) time.Time {
 	// convert 62 base to 10 base
 	var timeValue int64 = 0
 	multiplier := int64(1)
@@ -302,7 +319,7 @@ func timestampToUnixTime(s []byte) time.Time {
 }
 
 // generateChecksum creates a 2-character checksum for the given string
-func generateChecksum(str []byte, length int, token uint64) []byte {
+func generateChecksum(str []byte, length int, token uint64, alphabet string) []byte {
 	var hash1 uint32 = uint32(token >> 32) // top 32 bits
 	var hash2 uint32 = uint32(token)
 
