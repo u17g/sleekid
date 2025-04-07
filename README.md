@@ -16,8 +16,8 @@ Total length = Prefix + T + N + C
 
 - Human-readable prefix
 - More compact than UUID while maintaining collision resistance
-  - when random digits length is 16, total length is near 26 bytes
-  - shorter than UUID, the same collision resistance with UUID.
+  - when random digits length is 8, total length is near 16 bytes
+  - shorter than or equals to UUID, the same collision resistance with UUID.
 - B-tree optimized with built-in timestamps
 - Built-in checksum verification
   - Detects errors with a probability of 99.97%
