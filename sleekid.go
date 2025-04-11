@@ -58,6 +58,7 @@ func ValidateWithPrefix(prefix string, id SleekId) bool {
 type SleekId []byte
 
 func (id SleekId) String() string {
+	// return *(*string)(unsafe.Pointer(&id))
 	return string(id)
 }
 
