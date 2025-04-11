@@ -217,7 +217,7 @@ func (o *sleekIdGen) New(prefix string, options ...*GenerateOption) (SleekId, er
 	}
 
 	// prefix + "_" + random bits + checksum bits
-	id := make([]byte, 0, len(prefix)+1+randomDigitsLength+o.checksumLength)
+	id := make([]byte, 0, len(prefix)+1+len(timestamp)+randomDigitsLength+o.checksumLength)
 	id = append(id, prefix...)
 	id = append(id, o.delimiter)
 	id = append(id, timestamp...)
