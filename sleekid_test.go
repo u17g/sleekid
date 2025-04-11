@@ -191,3 +191,15 @@ func TestCustomTimestampLength(t *testing.T) {
 	assert.Equal(t, 3+1+6+15+2, len(id))
 	assert.Assert(t, regexp.MustCompile(`^[a-z]+_[A-Za-z0-9]+$`).MatchString(string(id)))
 }
+
+func TestTimestampPadding(t *testing.T) {
+	alphabet := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	str := timestampToSortableString(time.Unix(baseUnixEpoch+1, 0), 6, alphabet)
+	assert.Equal(t, "000001", string(str))
+	str = timestampToSortableString(time.Unix(baseUnixEpoch+60, 0), 6, alphabet)
+	assert.Equal(t, "00000y", string(str))
+	str = timestampToSortableString(time.Unix(baseUnixEpoch+61, 0), 6, alphabet)
+	assert.Equal(t, "00000z", string(str))
+	str = timestampToSortableString(time.Unix(baseUnixEpoch+62, 0), 6, alphabet)
+	assert.Equal(t, "000010", string(str))
+}
