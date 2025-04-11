@@ -120,13 +120,13 @@ $ go test -bench . -benchmem
 
 goos: darwin
 goarch: arm64
-pkg: github.com/RyosukeCla/sleekid
-cpu: Apple M1 Max
-BenchmarkNew-10                          2786331               424.1 ns/op            96 B/op          5 allocs/op
-BenchmarkPrefix-10                      50602398                22.73 ns/op           16 B/op          2 allocs/op
-BenchmarkTimestamp-10                   28589920                41.83 ns/op            0 B/op          0 allocs/op
-BenchmarkValidate-10                    29047572                40.60 ns/op            2 B/op          1 allocs/op
-BenchmarkValidateWithPrefix-10          26366164                44.81 ns/op            2 B/op          1 allocs/op
-BenchmarkNewUUID-10                      4284284               282.4 ns/op            16 B/op          1 allocs/op
-BenchmarkNewXid-10                      24377856                47.75 ns/op            0 B/op          0 allocs/op
+pkg: github.com/RyosukeCla/sleekid/v2
+cpu: Apple M4
+BenchmarkNew-10                   	 4227106	       280.4 ns/op	      56 B/op	       4 allocs/op
+BenchmarkPrefix-10                	80938208	        15.29 ns/op	      16 B/op	       2 allocs/op
+BenchmarkTimestamp-10             	25121528	        48.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkValidate-10              	39671715	        30.22 ns/op	       2 B/op	       1 allocs/op
+BenchmarkValidateWithPrefix-10    	37104268	        32.39 ns/op	       2 B/op	       1 allocs/op
+BenchmarkNewUUID-10               	 6279432	       191.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkNewXid-10                	35857108	        33.87 ns/op	       0 B/op	       0 allocs/op
 ```
