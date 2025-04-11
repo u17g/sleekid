@@ -17,10 +17,13 @@ Total length = Prefix + T + N + C
 - Human-readable prefix
 - More compact than UUID while maintaining collision resistance
   - when random digits length is 8, total length is near 16 bytes
-  - shorter than or equals to UUID, the same collision resistance with UUID.
-- B-tree optimized with built-in timestamps
+  - shorter than UUID
+- Timestamp
+  - Sortable
+  - B-tree optimized with built-in timestamps
+  - Extract timestamp from id
 - Built-in checksum verification
-  - Detects errors with a probability of 99.97%
+  - Detects errors with a probability of 99.97% with 2 checksum length.
 - Cryptographically random
 - URL friendly with base62 encoding
 - Fully configurable
@@ -29,7 +32,7 @@ Total length = Prefix + T + N + C
   - timestamp length: 4 ~ 6
   - checksum length: 1 ~ 3
     - checksum token: any 64-bit integer
-  - random digits length: 1 ~ 16
+  - random digits length: 1 ~
 
 ## Usage
 
@@ -93,12 +96,6 @@ random digits part with N length
 total space
 - Combined unique possibilities: 62^6 * 62^N = 62^(6+N)
 - For N=12: 62^18 ≈ 1.83 × 10^32 combinations
-
-### Birthday Problem
-
-For a 50% collision probability:
-- √(π/2 * 62^N) attempts needed
-- For N=12: √(π/2 * 62^12) ≈ 2.8 trillion attempts
 
 ### Tamper Detection Probability
 
