@@ -16,7 +16,7 @@ func BenchmarkNew(b *testing.B) {
 	prefix := "usr"
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gen.New(prefix)
+		_, _ = gen.New(prefix)
 	}
 }
 
@@ -60,14 +60,14 @@ func BenchmarkValidateWithPrefix(b *testing.B) {
 func BenchmarkNewUUID(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		uuid.NewRandom()
+		_, _ = uuid.NewRandom()
 	}
 }
 
 func BenchmarkNewXid(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		xid.New()
+		_ = xid.New()
 	}
 }
 
