@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"crypto/rand"
+	"crypto/subtle"
 )
 
 var generator Generator = NewGenerator(GeneratorInit{})
@@ -253,7 +254,7 @@ func (o *sleekIdGen) Validate(id SleekId) bool {
 		return false
 	}
 	idPart, checksum := id[:len(id)-o.checksumLength], id[len(id)-o.checksumLength:]
-	return bytes.Equal(checksum, generateChecksum(idPart, o.checksumLength, o.checksumToken, o.alphabet))
+	return subtle.ConstantTimeCompare(checksum, generateChecksum(idPart, o.checksumLength, o.checksumToken, o.alphabet)) == 1
 }
 
 func (o *sleekIdGen) ValidateWithPrefix(prefix string, id SleekId) bool {
