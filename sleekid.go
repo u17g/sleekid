@@ -250,7 +250,7 @@ func (o *sleekIdGen) Timestamp(id SleekId) time.Time {
 }
 
 func (o *sleekIdGen) Validate(id SleekId) bool {
-	if len(id) < o.checksumLength {
+	if len(id) < o.checksumLength+o.timestampLength {
 		return false
 	}
 	idPart, checksum := id[:len(id)-o.checksumLength], id[len(id)-o.checksumLength:]
