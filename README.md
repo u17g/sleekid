@@ -37,7 +37,7 @@ Total length = Prefix + T + N + C
 ## Usage
 
 ```go
-import "github.com/RyosukeCla/sleekid"
+import "github.com/u17g/sleekid"
 
 // Setup generator, before using sleekid.
 sleekid.Setup(sleekid.GeneratorInit{
@@ -117,7 +117,7 @@ $ go test -bench . -benchmem
 
 goos: darwin
 goarch: arm64
-pkg: github.com/RyosukeCla/sleekid/v2
+pkg: github.com/u17g/sleekid/v2
 cpu: Apple M4
 BenchmarkNew-10                   	 4227106	       280.4 ns/op	      56 B/op	       4 allocs/op
 BenchmarkPrefix-10                	80938208	        15.29 ns/op	      16 B/op	       2 allocs/op
